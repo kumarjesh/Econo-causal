@@ -6,3 +6,5 @@ networkx
 matplotlib
 streamlit
 econml
+plotly
+joblib
