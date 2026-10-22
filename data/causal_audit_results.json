@@ -1,0 +1,27 @@
+{
+  "base_effect": 0.064615180584358,
+  "audit_score": "3/3 Passed",
+  "refutations": {
+    "placebo": {
+      "test_name": "Placebo Treatment Refuter",
+      "original_effect": 0.064615180584358,
+      "new_effect": 0.0004199285223541527,
+      "passed": true,
+      "description": "Replaced true discounts with random assignment. Effect collapsed towards zero."
+    },
+    "random_common_cause": {
+      "test_name": "Random Common Cause Refuter",
+      "original_effect": 0.064615180584358,
+      "new_effect": 0.061760046483803066,
+      "passed": true,
+      "description": "Injected independent confounder. Model estimate remained stable."
+    },
+    "data_subset": {
+      "test_name": "Data Subset Refuter",
+      "original_effect": 0.064615180584358,
+      "new_effect": 0.06454820645236309,
+      "passed": true,
+      "description": "Tested on random 80% subsets. Estimated effect is statistically consistent."
+    }
+  }
+}
