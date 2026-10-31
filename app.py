@@ -324,5 +324,105 @@ with tab3:
                 title="<b>Treatment Tier Allocation</b> (% of Customer Base)",
                 showlegend=True,
                 margin=dict(t=40, b=20, l=10, r=10)
+            )
+            st.plotly_chart(fig_donut, use_container_width=True)
+            
+            st.markdown(f"""
+            - **Tier $0**: `{tier_0:,}` customers ({tier_0/len(prescribed_df)*100:.1f}%) — Organic / Inelastic
+            - **Tier $10**: `{tier_10:,}` customers ({tier_10/len(prescribed_df)*100:.1f}%) — Moderate Elasticity
+            - **Tier $20**: `{tier_20:,}` customers ({tier_20/len(prescribed_df)*100:.1f}%) — High Elasticity
+            """)
+            
+        with col_v2:
+            st.subheader("Benchmark Strategy Comparison")
+            # Bar chart of incremental buyers across competing policies
+            colors = ['#10b981' if 'Causal' in p else '#64748b' for p in comp_df['Policy Strategy']]
+            
+            fig_comp = go.Figure(data=[
+                go.Bar(
+                    x=comp_df['Policy Strategy'],
+                    y=comp_df['Incremental Buyers Gained'],
+                    marker_color=colors,
+                    text=[f"{b:.1f} buyers<br>(${c:.0f}/ea)" for b, c in zip(comp_df['Incremental Buyers Gained'], comp_df['Cost per Incremental Buyer ($)'])],
+                    textposition='auto'
+                )
+            ])
+            fig_comp.update_layout(
+                title=f"<b>Incremental Conversions under Identical ${budget:,.0f} Budget</b>",
+                xaxis_title="Targeting Strategy",
+                yaxis_title="Expected Incremental Buyers",
+                xaxis_tickangle=-25,
+                margin=dict(t=40, b=40, l=10, r=10)
+            )
+            st.plotly_chart(fig_comp, use_container_width=True)
+            
+        # Strategic Business Insight Box
+        st.markdown("---")
+        st.subheader("💡 Strategic Causal AI Insight")
+        st.markdown("""
+        <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 18px; margin-bottom: 20px;">
+            <h4 style="color: #166534; margin-top: 0;">Why Does Causal AI Outperform Predictive ML by +72%?</h4>
+            <p style="color: #14532d; font-size: 15px; line-height: 1.6;">
+                <b>The Predictive ML Trap:</b> Standard propensity models target customers with the highest baseline probability of purchasing. These customers are <i>"Sure Things"</i>—they already plan to buy at full price. Handing them discounts burns marketing budget without changing customer behavior.<br><br>
+                <b>The Causal Prescriptive Advantage:</b> Double Machine Learning isolates the <b>Individual Treatment Effect ($\tau_i$)</b>—the marginal shift in behavior caused exclusively by the promotion. SciPy optimization channels every campaign dollar towards <i>"Persuadables"</i> (customers with high price elasticity), delivering <b>maximum incremental revenue per marketing dollar</b>.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Benchmark Table
+        st.subheader("Detailed Strategy Performance Matrix")
+        st.dataframe(comp_df, use_container_width=True)
+        
+        # Prescriptive Allocation Table & CSV Export
+        st.markdown("---")
+        st.subheader("Actionable Customer Prescriptions Matrix")
+        
+        if 'age_bracket' not in prescribed_df.columns:
+            prescribed_df['age_bracket'] = pd.cut(
+                prescribed_df['age'],
+                bins=[0, 30, 50, 100],
+                labels=['Young (<30)', 'Middle-Aged (30-50)', 'Senior (>50)']
+            )
+            
+        filter_col, search_col = st.columns([2, 2])
+        with filter_col:
+            filter_choice = st.selectbox(
+                "Filter by Recommended Discount Tier:",
+                ["All Customers", "Tier $0 Only (Organic)", "Tier $10 Only", "Tier $20 Only"]
+            )
+        with search_col:
+            client_search = st.text_input("Search by Client ID:", "")
+            
+        display_df = prescribed_df.copy()
+        if filter_choice == "Tier $0 Only (Organic)":
+            display_df = display_df[display_df['recommended_discount'] == 0]
+        elif filter_choice == "Tier $10 Only":
+            display_df = display_df[display_df['recommended_discount'] == 10]
+        elif filter_choice == "Tier $20 Only":
+            display_df = display_df[display_df['recommended_discount'] == 20]
+            
+        if client_search.strip():
+            display_df = display_df[display_df['client_id'].astype(str).str.contains(client_search.strip())]
+            
+        # Format columns for readability
+        table_cols = ['client_id', 'age', 'age_bracket', 'has_redeemed', 'recommended_discount', 'expected_lift', 'treatment_cost']
+        export_table = display_df[[c for c in table_cols if c in display_df.columns]].copy()
+        export_table['expected_lift'] = (export_table['expected_lift'] * 100).round(2).astype(str) + "%"
+        export_table['treatment_cost'] = "$" + export_table['treatment_cost'].round(2).astype(str)
+        export_table.columns = ['Client ID', 'Age', 'Demographic Segment', 'Previous Redemption', 'Prescribed Discount', 'Expected Conversion Lift', 'Cost']
+        
+        st.dataframe(export_table.head(100), use_container_width=True)
+        st.caption(f"Showing {min(100, len(export_table))} of {len(export_table):,} matching customers.")
+        
+        # CSV Export Download Button
+        csv_data = prescribed_df[['client_id', 'age', 'has_redeemed', 'recommended_discount', 'expected_lift', 'treatment_cost']].to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="📥 Download Full Prescriptive Allocation Matrix (CSV)",
+            data=csv_data,
+            file_name=f"prescriptive_allocation_matrix_${budget:.0f}.csv",
+            mime="text/csv",
+            help="Directly export campaign targeting list for CRM ingestion (e.g., Klaviyo, Braze, Salesforce)."
+        )
     else:
-        st.info('Treatment effect predictions not found. Run python double_ml.py first.')
+        st.info("Treatment effect predictions not found. Run `python double_ml.py` first to generate ITE scores.")
+
