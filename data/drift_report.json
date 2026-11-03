@@ -1,0 +1,38 @@
+{
+  "timestamp": "2026-10-30T14:22:41.964856+00:00",
+  "overall_status": "WARNING_MODERATE_DRIFT",
+  "badge": "WARNING",
+  "overall_psi": 0.0544,
+  "total_features_evaluated": 2,
+  "features_with_severe_drift": 0,
+  "features_with_moderate_drift": 1,
+  "recommendation": "WARNING: Moderate distribution shift detected. Increase sampling frequency and monitor conversion rate elasticity.",
+  "feature_metrics": {
+    "age": {
+      "psi_score": 0.1046,
+      "psi_status": "MODERATE_DRIFT",
+      "ks_statistic": 0.0967,
+      "ks_p_value": 0.0,
+      "ks_verdict": "REJECT_H0_DRIFT",
+      "baseline_mean": 46.43,
+      "baseline_std": 16.08,
+      "production_mean": 45.74,
+      "production_std": 14.07,
+      "mean_shift_pct": -1.49
+    },
+    "issue_redeem_delay": {
+      "psi_score": 0.0041,
+      "psi_status": "STABLE",
+      "ks_statistic": 0.0184,
+      "ks_p_value": 0.503932,
+      "ks_verdict": "ACCEPT_H0_STABLE",
+      "baseline_mean": 11.95,
+      "baseline_std": 11.94,
+      "production_mean": 12.09,
+      "production_std": 12.0,
+      "mean_shift_pct": 1.17
+    }
+  },
+  "baseline_sample_size": 10000,
+  "production_sample_size": 2500
+}
