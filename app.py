@@ -478,7 +478,7 @@ with tab4:
             
             # JSON Preview
             with st.expander("View Raw REST API JSON Response", expanded=True):
-                st.json(pred_res.model_dump())
+                st.code(json.dumps(pred_res.model_dump(), indent=2), language="json")
         except Exception as e:
             st.warning(f"API Module standby: {e}")
 
