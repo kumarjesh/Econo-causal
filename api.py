@@ -169,26 +169,28 @@ def predict_individual_customer(payload: CustomerPayload):
     marginal_upgrade = ite_20_val - ite_10_val
     
     # Prescriptive decision rule:
-    # Upgrade to $20 if marginal ROI > 0 and upgrade lift > 0
-    if ite_20_val > ite_10_val and marginal_upgrade > 0.01:
+    # 1. Young, price-sensitive shoppers (<35, low delay <25d, strong marginal lift) -> $20
+    # 2. Responsive middle cohort (<60, delay <30d, solid lift) -> $10
+    # 3. Seniors (>=60), sluggish voucher delay (>=30d), or low ROI -> $0 Organic Holdout (Preserve margin!)
+    is_sluggish_or_senior = (payload.issue_redeem_delay >= 30.0 or payload.age >= 60.0)
+
+    if payload.age < 35.0 and payload.issue_redeem_delay < 25.0 and marginal_upgrade >= 0.008 and ite_20_val >= 0.045:
         rec_discount = 20
         best_lift = ite_20_val
-    elif ite_10_val > 0.005:
+        segment = "High Elasticity Persuadable (Youth <35)"
+    elif not is_sluggish_or_senior and ite_10_val >= 0.025 and payload.issue_redeem_delay < 30.0:
         rec_discount = 10
         best_lift = ite_10_val
+        segment = "Standard Persuadable"
     else:
         rec_discount = 0
         best_lift = 0.0
-
-    # Archetype categorization
-    if payload.age < 30 and ite_20_val > 0.045:
-        segment = "High Elasticity Persuadable (Young <30)"
-    elif payload.age > 50 and ite_10_val > 0.02:
-        segment = "Moderate Elasticity (Senior >50)"
-    elif best_lift < 0.01:
-        segment = "Low Elasticity Organic / Inelastic"
-    else:
-        segment = "Standard Persuadable"
+        if payload.age >= 60.0:
+            segment = "Organic Holdout (Senior: Price Insensitive / Margin Preservation)"
+        elif payload.issue_redeem_delay >= 30.0:
+            segment = "Organic Holdout (Delayed Redemption: Sluggish Responder)"
+        else:
+            segment = "Organic Holdout (Low ROI / Inelastic)"
 
     return CustomerPrediction(
         client_id=payload.client_id,
@@ -234,19 +236,26 @@ def predict_batch_customers(payload: BatchPredictionRequest):
         i10 = float(ite_10_arr[i])
         i20 = float(ite_20_arr[i])
         upgrade = i20 - i10
-        
-        if i20 > i10 and upgrade > 0.01:
+        is_sluggish_or_senior = (c.issue_redeem_delay >= 30.0 or c.age >= 60.0)
+
+        if c.age < 35.0 and c.issue_redeem_delay < 25.0 and upgrade >= 0.008 and i20 >= 0.045:
             rec = 20
             lift = i20
-        elif i10 > 0.005:
+            segment = "High Elasticity Persuadable (Youth <35)"
+        elif not is_sluggish_or_senior and i10 >= 0.025 and c.issue_redeem_delay < 30.0:
             rec = 10
             lift = i10
+            segment = "Standard Persuadable"
         else:
             rec = 0
             lift = 0.0
-            
-        segment = "High Elasticity Young" if c.age < 30 else ("Senior Segment" if c.age > 50 else "Middle-Aged")
-        
+            if c.age >= 60.0:
+                segment = "Organic Holdout (Senior: Price Insensitive / Margin Preservation)"
+            elif c.issue_redeem_delay >= 30.0:
+                segment = "Organic Holdout (Delayed Redemption: Sluggish Responder)"
+            else:
+                segment = "Organic Holdout (Low ROI / Inelastic)"
+
         predictions.append(CustomerPrediction(
             client_id=c.client_id,
             ite_10=round(i10, 4),
